@@ -24,10 +24,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 3;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 0.628;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -67,6 +67,8 @@ UKF::UKF() {
 	0, 0, 0, 1, 0,
 	0, 0, 0, 0, 1;
  
+
+
 }
 
 UKF::~UKF() {}
@@ -134,10 +136,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 	if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
 		// Preform radar update
 		cout << "Preform radar update" << endl;
-		//UKF::UpdateRadar(meas_package);
+		UKF::UpdateRadar(meas_package);
 	} else { 
 		// Preform laser update
-		UKF::UpdateLidar(meas_package);
+		//UKF::UpdateLidar(meas_package);
 	}
  	//cout << "debug5" << endl;
 
@@ -234,6 +236,9 @@ void UKF::Prediction(double delta_t) {
 		py_p = p_y + v * delta_t * sin(yaw);
 
 	}
+   	cout << "Print values of predicted px and pt without noise" << endl;
+	cout << "px_p = " << endl << px_p << endl;
+	cout << "py_p = " << endl << py_p << endl;
 	
 	double v_p = v;
 	double yaw_p = yaw + yawd * delta_t;
@@ -291,7 +296,7 @@ void UKF::Prediction(double delta_t) {
 	
 	//angle normalization
 	while (x_diff(3) > M_PI) x_diff(3)-=2*M_PI;
-	while (x_diff(3) < M_PI) x_diff(3)+=2*M_PI;
+	while (x_diff(3) < -M_PI) x_diff(3)+=2*M_PI;
 
 	P_ = P_ + weights_(i) * x_diff * x_diff.transpose();
   }
@@ -312,6 +317,34 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
+  cout << "Starting Lidar update" << endl;
+  VectorXd z = VectorXd(2);
+  z << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1];
+  MatrixXd H_ = MatrixXd(2,5);
+  H_ << 1, 0, 0, 0, 0,
+	0, 1, 0, 0, 0; 
+
+  //Measurement covariance matrix
+  MatrixXd R_ = MatrixXd(2,2);
+  R_ << std_laspx_*std_laspx_, 0,
+	0, std_laspy_*std_laspy_; 
+  cout << "debug1" << endl;
+  VectorXd y = z - H_ * x_; 
+  MatrixXd Ht = H_.transpose();
+  MatrixXd S = H_ * P_ * Ht + R_ ;
+  cout << "debug2" << endl;
+  MatrixXd Si = S.inverse();
+  MatrixXd K = P_ * Ht * Si;
+
+  // new state
+  x_ = x_ + K * y;
+
+  //size of P_ matrix;
+  int size = sizeof P_;
+  MatrixXd I = MatrixXd::Identity(5,5);
+  cout << "debug3" << endl;
+  P_ = (I - K * H_) * P_ ;
+  cout << "End of Update Lidar step" << endl;
 }
 
 /**
