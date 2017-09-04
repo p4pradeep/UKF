@@ -136,10 +136,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 	if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
 		// Preform radar update
 		cout << "Preform radar update" << endl;
-		UKF::UpdateRadar(meas_package);
+		//UKF::UpdateRadar(meas_package);
 	} else { 
 		// Preform laser update
-		//UKF::UpdateLidar(meas_package);
+		UKF::UpdateLidar(meas_package);
 	}
  	//cout << "debug5" << endl;
 
